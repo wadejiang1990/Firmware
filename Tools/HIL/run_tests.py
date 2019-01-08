@@ -22,6 +22,7 @@ def do_tests(port, baudrate):
             finished = 1
         time.sleep(0.05)
 
+    # perf
     ser.write('tests perf\n')
 
     finished = 0
@@ -31,8 +32,31 @@ def do_tests(port, baudrate):
 
         if "perf PASSED" in serial_line:
             finished = 1
-            ser.close()
 
+        time.sleep(0.05)
+
+    # free
+    ser.write('ver all\n')
+    ser.write('help\n')
+    ser.write('free\n')
+    ser.write('df\n')
+    ser.write('ps\n')
+    ser.write('ls /\n')
+    ser.write('ls /etc \n')
+    ser.write('ls /dev \n')
+    ser.write('ls /fs \n')
+    ser.write('ls /obj \n')
+    ser.write('ls /proc \n')
+    ser.write('uorb top -a \n')
+    ser.write('top once \n')
+
+    finished = 0
+    while finished == 0:
+        serial_line = ser.readline()
+        print(serial_line.replace('\n',''))
+
+        if "Uptime:" in serial_line:
+            finished = 1
         time.sleep(0.05)
 
     ser.close() 
