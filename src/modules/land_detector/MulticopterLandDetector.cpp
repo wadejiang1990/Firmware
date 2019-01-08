@@ -249,6 +249,11 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 
 bool MulticopterLandDetector::_get_landed_state()
 {
+	// if already landed and that the drone has low thrust, it has to be on the ground
+	if (_state == LandDetectionState::LANDED && _has_low_thrust()) {
+		return true;
+	}
+
 	// reset the landed_time
 	if (!_maybe_landed_hysteresis.get_state()) {
 
