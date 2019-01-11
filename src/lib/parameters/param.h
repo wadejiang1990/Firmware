@@ -464,6 +464,16 @@ struct param_info_s {
 	union param_value_u val;
 };
 
+struct param_info_float_s {
+	const char *name;
+	float value;
+};
+
+struct param_info_int32_s {
+	const char *name;
+	int32_t value;
+};
+
 __END_DECLS
 
 

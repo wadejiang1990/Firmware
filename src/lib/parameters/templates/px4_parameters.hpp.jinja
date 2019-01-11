@@ -37,4 +37,68 @@ static constexpr param_info_s parameters[] = {
 {% endfor %}
 };
 
+struct parameters_float {
+
+	enum class params {
+	{# enums are guaranteed to start with 0 (if the value for the first is not
+		specified), and then incremented by 1 (the implementation depends on that!)  #}
+	{%- for param in params %}
+		{%- if param.attrib["type"] == "FLOAT" %}
+			{{ param.attrib["name"] }},
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr const char * names[] = {
+	{% for param in params %}
+		{%- if param.attrib["type"] == "FLOAT" %}
+			"{{ param.attrib["name"] }}",
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr float values[] = {
+	{% for param in params %}
+		{%- if param.attrib["type"] == "FLOAT" %}
+			{{ param.attrib["default"] }},
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr size_t number = sizeof(values) / sizeof(values[0]);
+};
+
+struct parameters_int32 {
+
+	enum class params {
+	{# enums are guaranteed to start with 0 (if the value for the first is not
+		specified), and then incremented by 1 (the implementation depends on that!)  #}
+	{%- for param in params %}
+		{%- if param.attrib["type"] == "INT32" %}
+			{{ param.attrib["name"] }},
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr const char * names[] = {
+	{% for param in params %}
+		{%- if param.attrib["type"] == "INT32" %}
+			"{{ param.attrib["name"] }}",
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr int32_t values[] = {
+	{% for param in params %}
+		{%- if param.attrib["type"] == "INT32" %}
+			{{ param.attrib["default"] }},
+		{%- endif %}
+	{%- endfor %}
+	};
+
+	static constexpr size_t number = sizeof(values) / sizeof(values[0]);
+};
+
+
+
 } // namespace px4
