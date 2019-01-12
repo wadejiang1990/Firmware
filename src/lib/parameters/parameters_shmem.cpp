@@ -1414,7 +1414,7 @@ param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_chang
 	for (param_t param = 0; handle_in_range(param); param++) {
 
 		/* if requested, skip unchanged values */
-		if (only_changed && (param_find_changed(param) == nullptr)) {
+		if (only_changed && param_value_is_default(param)) {
 			continue;
 		}
 
