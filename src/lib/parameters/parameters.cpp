@@ -736,18 +736,6 @@ out:
 	return result;
 }
 
-#if defined(FLASH_BASED_PARAMS)
-int param_set_external(param_t param, const void *val, bool mark_saved, bool notify_changes)
-{
-	return param_set_internal(param, val, mark_saved, notify_changes);
-}
-
-const void *param_get_value_ptr_external(param_t param)
-{
-	return param_get_value_ptr(param);
-}
-#endif
-
 int
 param_set(param_t param, const void *val)
 {
@@ -844,9 +832,7 @@ param_reset_all()
 void
 param_reset_excludes(const char *excludes[], int num_excludes)
 {
-	param_t	param;
-
-	for (param = 0; handle_in_range(param); param++) {
+	for (param_t param = 0; handle_in_range(param); param++) {
 		const char *name = param_name(param);
 		bool exclude = false;
 
@@ -1211,7 +1197,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
+	if (param_set_internal(param, v, state->mark_saved, false)) {
 		PX4_DEBUG("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -1252,6 +1238,9 @@ param_import_internal(int fd, bool mark_saved)
 
 	} while (result > 0);
 
+	// notify the system of changes once
+	param_notify_changes();
+
 	return result;
 }
 
@@ -1279,9 +1268,7 @@ param_load(int fd)
 void
 param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed, bool only_used)
 {
-	param_t	param;
-
-	for (param = 0; handle_in_range(param); param++) {
+	for (param_t param = 0; handle_in_range(param); param++) {
 
 		/* if requested, skip unchanged values */
 		if (only_changed && (param_find_changed(param) == nullptr)) {
