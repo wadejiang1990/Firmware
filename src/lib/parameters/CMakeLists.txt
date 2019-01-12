@@ -132,6 +132,8 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 	add_subdirectory(flashparams)
 endif()
 
+add_compile_options(-DDEBUG_BUILD)
+
 # TODO: find a better way to do this
 if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	add_library(parameters

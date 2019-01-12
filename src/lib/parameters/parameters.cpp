@@ -647,6 +647,11 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 
 	if (param_values == nullptr) {
 		utarray_new(param_values, &param_icd);
+
+		// mark all parameters inactive
+		for (int i = 0; i < params_active.size(); i++) {
+			params_active.set(i, false);
+		}
 	}
 
 	if (param_values == nullptr) {
@@ -1304,4 +1309,18 @@ uint32_t param_hash_check()
 	param_unlock_reader();
 
 	return param_hash;
+}
+
+void param_print_status()
+{
+	PX4_INFO("summary: %d/%d (used/total)", param_count_used(), param_count());
+	PX4_INFO("default file: %s", param_get_default_file());
+	PX4_INFO("storage array: %d/%d elements (%d bytes total)", utarray_len(param_values), param_values->n,
+		 param_values->n * sizeof(UT_icd));
+
+	perf_print_counter(param_export_perf);
+	perf_print_counter(param_find_perf);
+	perf_print_counter(param_get_perf);
+	perf_print_counter(param_set_perf);
+
 }

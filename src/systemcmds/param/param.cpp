@@ -136,6 +136,8 @@ $ reboot
 	PRINT_MODULE_USAGE_PARAM_FLAG('q', "quiet mode, print only param value (name needs to be exact)", true);
 	PRINT_MODULE_USAGE_ARG("<filter>", "Filter by param name (wildcard at end allowed, eg. sys_*)", true);
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print overall status of parameter system");
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("set", "Set parameter to a value");
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to set", false);
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
@@ -243,6 +245,11 @@ param_main(int argc, char *argv[])
 			} else {
 				return do_show(nullptr, false);
 			}
+		}
+
+		if (!strcmp(argv[1], "status")) {
+			param_print_status();
+			return PX4_OK;
 		}
 
 		if (!strcmp(argv[1], "set")) {
@@ -390,6 +397,8 @@ do_load(const char *param_file_name)
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
 		return 1;
+	} else {
+		PX4_INFO("%d parameters loaded from file %s", param_count_used(), param_file_name);
 	}
 
 	return 0;
