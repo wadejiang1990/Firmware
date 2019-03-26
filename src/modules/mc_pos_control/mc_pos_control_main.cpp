@@ -1,52 +1,8 @@
-/****************************************************************************
- *
- *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
 
 /**
  * @file mc_pos_control_main.cpp
- * Multicopter position controller.
- *
- * Original publication for the desired attitude generation:
- * Daniel Mellinger and Vijay Kumar. Minimum Snap Trajectory Generation and Control for Quadrotors.
- * Int. Conf. on Robotics and Automation, Shanghai, China, May 2011
- *
- * Also inspired by https://pixhawk.org/firmware/apps/fw_pos_control_l1
- *
- * The controller has two loops: P loop for position error and PID loop for velocity error.
- * Output of velocity controller is thrust vector that splitted to thrust direction
- * (i.e. rotation matrix for multicopter orientation) and thrust module (i.e. multicopter thrust itself).
- * Controller doesn't use Euler angles for work, they generated only for more human-friendly control and logging.
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @author jiangyuanqing2008@163.com
+ * @date 2019/03/26
  */
 
 #include <px4_config.h>
@@ -82,10 +38,9 @@
 
 #define SIGMA_SINGLE_OP			0.000001f
 #define SIGMA_NORM			0.001f
-/**
- * Multicopter position control app start / stop handling function
- *
- * @ingroup apps
+
+/* 
+ * 告知编译器按照C++语言的格式引用C语言的main函数
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
@@ -2916,12 +2871,11 @@ bool MulticopterPositionControl::manual_wants_landing()
 	return (has_manual_control_present && (_manual.z < 0.15f || !_control_mode.flag_control_climb_rate_enabled));
 }
 
-void
-MulticopterPositionControl::task_main()
+
+//位置控制进程主函数
+void MulticopterPositionControl::task_main()
 {
-	/*
-	 * do subscriptions
-	 */
+	//订阅数据
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -2932,9 +2886,10 @@ MulticopterPositionControl::task_main()
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
+    //更新参数
 	parameters_update(true);
 
-	/* get an initial update for all sensor and status data */
+	//拉取订阅的数据（初始化拉取一次）
 	poll_subscriptions();
 
 	/* We really need to know from the beginning if we're landed or in-air. */
@@ -2953,7 +2908,10 @@ MulticopterPositionControl::task_main()
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 
-	while (!_task_should_exit) {
+
+	//位置控制最外层大循环
+	while (!_task_should_exit) 
+	{
 		/* wait for up to 20ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
 
@@ -2981,23 +2939,29 @@ MulticopterPositionControl::task_main()
 
 		/* Update velocity limits. Use the minimum of the estimator demanded and vehicle
 		 * limits, and allow a minimum of 0.3 m/s for repositioning */
-		if (PX4_ISFINITE(_local_pos.vxy_max)) {
+		if (PX4_ISFINITE(_local_pos.vxy_max)) 
+		{
 			_vel_max_xy = fmaxf(fminf(_vel_max_xy_param.get(), _local_pos.vxy_max), 0.3f);
-
-		} else {
+		} 
+		else 
+		{
 			/* If the estimator stopped demanding a limit, release the limit gradually */
-			if (_vel_sp_significant) {
-				if (_vel_max_xy < _vel_max_xy_param.get()) {
+			if (_vel_sp_significant) 
+			{
+				if (_vel_max_xy < _vel_max_xy_param.get()) 
+				{
 					_vel_max_xy += dt * _acc_max_estimator_xy.get();
-
-				} else {
+				} 
+				else 
+				{
 					_vel_max_xy = _vel_max_xy_param.get();
 				}
 			}
 		}
 
 		/* reset flags when landed */
-		if (_vehicle_land_detected.landed) {
+		if (_vehicle_land_detected.landed) 
+		{
 			_reset_pos_sp = true;
 			_reset_alt_sp = true;
 			_do_reset_alt_pos_flag = true;
@@ -3028,8 +2992,10 @@ MulticopterPositionControl::task_main()
 			_vel_max_xy = _vel_max_xy_param.get();
 		}
 
+
 		/* reset setpoints and integrators VTOL in FW mode */
-		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) {
+		if (_vehicle_status.is_vtol && !_vehicle_status.is_rotary_wing) 
+		{
 			_reset_alt_sp = true;
 			_reset_int_xy = true;
 			_reset_int_z = true;
@@ -3039,20 +3005,22 @@ MulticopterPositionControl::task_main()
 		}
 
 		if (!_in_smooth_takeoff && _vehicle_land_detected.landed && _control_mode.flag_armed &&
-		    (in_auto_takeoff() || manual_wants_takeoff())) {
+			(in_auto_takeoff() || manual_wants_takeoff())) 
+		{
 			_in_smooth_takeoff = true;
 			// This ramp starts negative and goes to positive later because we want to
 			// be as smooth as possible. If we start at 0, we alrady jump to hover throttle.
 			_takeoff_vel_limit = -0.5f;
 		}
-
-		else if (!_control_mode.flag_armed) {
+		else if (!_control_mode.flag_armed) 
+		{
 			// If we're disarmed and for some reason were in a smooth takeoff, we reset that.
 			_in_smooth_takeoff = false;
 		}
 
 		/* set triplets to invalid if we just landed */
-		if (_vehicle_land_detected.landed && !was_landed) {
+		if (_vehicle_land_detected.landed && !was_landed) 
+		{
 			_pos_sp_triplet.current.valid = false;
 		}
 
@@ -3072,32 +3040,37 @@ MulticopterPositionControl::task_main()
 			_alt_hold_engaged = false;
 		}
 
-		if (_test_flight_tasks.get()) {
-			switch (_vehicle_status.nav_state) {
-			case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-				_flight_tasks.switchTask(FlightTaskIndex::Altitude);
-				break;
 
-			case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-				_flight_tasks.switchTask(FlightTaskIndex::Position);
-				break;
+		if (_test_flight_tasks.get()) 
+		{
+			switch (_vehicle_status.nav_state) 
+			{
+				case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
+					_flight_tasks.switchTask(FlightTaskIndex::Altitude);
+					break;
 
-			case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-				_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
-				break;
+				case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+					_flight_tasks.switchTask(FlightTaskIndex::Position);
+					break;
 
-			default:
-				/* not supported yet */
-				_flight_tasks.switchTask(FlightTaskIndex::None);
+				case vehicle_status_s::NAVIGATION_STATE_MANUAL:
+					_flight_tasks.switchTask(FlightTaskIndex::Stabilized);
+					break;
+
+				default:
+					/* not supported yet */
+					_flight_tasks.switchTask(FlightTaskIndex::None);
 			}
-
-		} else {
+		} 
+		else 
+		{
 			/* make sure to disable any task when we are not testing them */
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
 
-		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) {
 
+		if (_test_flight_tasks.get() && _flight_tasks.isAnyTaskActive()) 
+		{
 			_flight_tasks.update();
 
 			/* Get Flighttask setpoints */
@@ -3173,12 +3146,16 @@ MulticopterPositionControl::task_main()
 			publish_local_pos_sp();
 			publish_attitude();
 
-		} else {
+		}
+		//执行位置控制逻辑 
+		else 
+		{
 			if (_control_mode.flag_control_altitude_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_climb_rate_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_acceleration_enabled) {
+				_control_mode.flag_control_acceleration_enabled) 
+			{
 
 				do_control();
 
@@ -3200,7 +3177,9 @@ MulticopterPositionControl::task_main()
 					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 				}
 
-			} else {
+			} 
+			else 
+			{
 				/* position controller disabled, reset setpoints */
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
@@ -3214,11 +3193,12 @@ MulticopterPositionControl::task_main()
 			}
 
 			/* generate attitude setpoint from manual controls */
-			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) {
-
+			if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_attitude_enabled) 
+			{
 				generate_attitude_setpoint();
-
-			} else {
+			} 
+			else 
+			{
 				_reset_yaw_sp = true;
 				_att_sp.yaw_sp_move_rate = 0.0f;
 			}
@@ -3226,6 +3206,7 @@ MulticopterPositionControl::task_main()
 			/* update previous velocity for velocity controller D part */
 			_vel_prev = _vel;
 
+			
 			/* publish attitude setpoint
 			 * Do not publish if
 			 * - offboard is enabled but position/velocity/accel control is disabled,
@@ -3236,8 +3217,8 @@ MulticopterPositionControl::task_main()
 			if (!(_control_mode.flag_control_offboard_enabled &&
 			      !(_control_mode.flag_control_position_enabled ||
 				_control_mode.flag_control_velocity_enabled ||
-				_control_mode.flag_control_acceleration_enabled))) {
-
+				_control_mode.flag_control_acceleration_enabled))) 
+			{
 				if (_att_sp_pub != nullptr) {
 					orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
 
@@ -3331,8 +3312,7 @@ MulticopterPositionControl::set_idle_state()
 	_att_sp.thrust = 0.0f;
 }
 
-void
-MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
+void MulticopterPositionControl::updateConstraints(Controller::Constraints &constraints)
 {
 	/* _constraints */
 	constraints.tilt_max = NAN; // Default no maximum tilt
@@ -3352,8 +3332,7 @@ MulticopterPositionControl::updateConstraints(Controller::Constraints &constrain
 	}
 }
 
-void
-MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
+void MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_sp)
 {
 	if (!in_auto_takeoff() && !manual_wants_takeoff()) {
 		if (_vehicle_land_detected.ground_contact) {
@@ -3383,8 +3362,7 @@ MulticopterPositionControl::landdetection_thrust_limit(matrix::Vector3f &thrust_
 	}
 }
 
-int
-MulticopterPositionControl::start()
+int MulticopterPositionControl::start()
 {
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
