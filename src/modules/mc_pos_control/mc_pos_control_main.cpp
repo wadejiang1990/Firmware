@@ -3150,6 +3150,7 @@ void MulticopterPositionControl::task_main()
 		//执行位置控制逻辑 
 		else 
 		{
+			//如果有位置控制或速度控制或加速度控制，则
 			if (_control_mode.flag_control_altitude_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_climb_rate_enabled ||
@@ -3157,34 +3158,38 @@ void MulticopterPositionControl::task_main()
 				_control_mode.flag_control_acceleration_enabled) 
 			{
 
+				//位置控制环路入口函数
 				do_control();
 
-				/* fill local position, velocity and thrust setpoint */
+				//将local位置和速度参考值赋给local_pos_sp结构体，用于消息发布
 				_local_pos_sp.timestamp = hrt_absolute_time();
 				_local_pos_sp.x = _pos_sp(0);
 				_local_pos_sp.y = _pos_sp(1);
 				_local_pos_sp.z = _pos_sp(2);
-				_local_pos_sp.yaw = _att_sp.yaw_body;
 				_local_pos_sp.vx = _vel_sp(0);
 				_local_pos_sp.vy = _vel_sp(1);
 				_local_pos_sp.vz = _vel_sp(2);
+				_local_pos_sp.yaw = _att_sp.yaw_body;
 
-				/* publish local position setpoint */
-				if (_local_pos_sp_pub != nullptr) {
+				//UORB发布参考位置和参考速度消息
+				if (_local_pos_sp_pub != nullptr) 
+				{
 					orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &_local_pos_sp);
-
-				} else {
+				} 
+				else 
+				{
 					_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &_local_pos_sp);
 				}
-
 			} 
 			else 
 			{
-				/* position controller disabled, reset setpoints */
+				//重置位置参考值
+				//重置积分标志位
 				_reset_pos_sp = true;
 				_reset_alt_sp = true;
 				_do_reset_alt_pos_flag = true;
 				_mode_auto = false;
+
 				_reset_int_z = true;
 				_reset_int_xy = true;
 
@@ -3206,7 +3211,7 @@ void MulticopterPositionControl::task_main()
 			/* update previous velocity for velocity controller D part */
 			_vel_prev = _vel;
 
-			
+
 			/* publish attitude setpoint
 			 * Do not publish if
 			 * - offboard is enabled but position/velocity/accel control is disabled,
