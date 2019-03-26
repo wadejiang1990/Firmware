@@ -1765,19 +1765,17 @@ void MulticopterPositionControl::control_auto()
 			/* by default use current setpoint as is */
 			matrix::Vector3f pos_sp = _curr_pos_sp;
 
-			/*
-			 * Z-DIRECTION
-			 */
 
-			/* get various distances */
+			/*****************************************高度方向动态参考位置指令生成*********************************************/
+
+			//计算高度方向上的三个距离：航点高度差、飞机到前一个航点高度差、飞机到当前航点高度差
 			float total_dist_z = fabsf(_curr_pos_sp(2) - _prev_pos_sp(2));
 			float dist_to_prev_z = fabsf(_pos(2) - _prev_pos_sp(2));
 			float dist_to_current_z = fabsf(_curr_pos_sp(2) - _pos(2));
 
-			/* if pos_sp has not reached target setpoint (=curr_pos_sp(2)),
-			 * then compute setpoint depending on vel_max */
-			if ((total_dist_z >  SIGMA_NORM) && (fabsf(_pos_sp(2) - _curr_pos_sp(2)) > SIGMA_NORM)) {
-
+			//如果动态参考高度还未达到当前航点高度，则依据动态速度计算生成更新动态参考高度指令
+			if ((total_dist_z >  SIGMA_NORM) && (fabsf(_pos_sp(2) - _curr_pos_sp(2)) > SIGMA_NORM)) 
+			{
 				/* check sign */
 				bool flying_upward = _curr_pos_sp(2) < _pos(2);
 
@@ -1848,9 +1846,8 @@ void MulticopterPositionControl::control_auto()
 				pos_sp(2) = _pos(2) + vel_sp_z / _pos_p(2);
 			}
 
-			/*
-			 * XY-DIRECTION
-			 */
+
+			/*****************************************水平方向动态参考位置指令生成*********************************************/
 
 			/* line from previous to current and from pos to current */
 			matrix::Vector2f vec_prev_to_current((_curr_pos_sp(0) - _prev_pos_sp(0)), (_curr_pos_sp(1) - _prev_pos_sp(1)));
