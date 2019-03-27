@@ -3236,13 +3236,14 @@ void MulticopterPositionControl::task_main()
 	_control_task = -1;
 }
 
-void
-MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
+//设置起飞速度映射
+void MulticopterPositionControl::set_takeoff_velocity(float &vel_sp_z)
 {
+	//从地面起飞时初始速度应向下，然后斜坡增长到起飞限速，保证电机转速不至于猛增加
 	_in_smooth_takeoff = _takeoff_vel_limit < -vel_sp_z;
-	/* ramp vertical velocity limit up to takeoff speed */
+	
 	_takeoff_vel_limit += -vel_sp_z * _dt / _takeoff_ramp_time.get();
-	/* limit vertical velocity to the current ramp value */
+	
 	vel_sp_z = math::max(vel_sp_z, -_takeoff_vel_limit);
 }
 
