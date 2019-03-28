@@ -1192,8 +1192,8 @@ MulticopterPositionControl::set_manual_acceleration_xy(matrix::Vector2f &stick_x
 	}
 }
 
-void
-MulticopterPositionControl::control_manual()
+//手动GPS模式
+void MulticopterPositionControl::control_manual()
 {
 	/* Entering manual control from non-manual control mode, reset alt/pos setpoints */
 	if (_mode_auto) {
@@ -1347,8 +1347,8 @@ MulticopterPositionControl::control_manual()
 	control_position();
 }
 
-void
-MulticopterPositionControl::control_non_manual()
+
+void MulticopterPositionControl::control_non_manual()
 {
 	/* select control source */
 	if (_control_mode.flag_control_offboard_enabled) {
@@ -1430,8 +1430,8 @@ MulticopterPositionControl::control_non_manual()
 	}
 }
 
-void
-MulticopterPositionControl::control_offboard()
+//offboard模式（仿真主要用）
+void MulticopterPositionControl::control_offboard()
 {
 	if (_pos_sp_triplet.current.valid) {
 
@@ -1570,8 +1570,8 @@ MulticopterPositionControl::vel_sp_slewrate()
 	}
 }
 
-bool
-MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
+//旧版的动态位置生成函数（计划舍弃）
+bool MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r,
 		const matrix::Vector3f &line_a, const matrix::Vector3f &line_b, matrix::Vector3f &res)
 {
 	/* project center of sphere on line */
@@ -1620,10 +1620,12 @@ MulticopterPositionControl::cross_sphere_line(const matrix::Vector3f &sphere_c, 
 	}
 }
 
+//自动飞行模式
 void MulticopterPositionControl::control_auto()
 {
 	/* reset position setpoint on AUTO mode activation or if we are not in MC mode */
-	if (!_mode_auto || !_vehicle_status.is_rotary_wing) {
+	if (!_mode_auto || !_vehicle_status.is_rotary_wing) 
+	{
 		if (!_mode_auto) {
 			_mode_auto = true;
 			//set _triplet_lat_lon_finite true once switch to AUTO(e.g. LAND)
@@ -1646,8 +1648,8 @@ void MulticopterPositionControl::control_auto()
 	matrix::Vector3f prev_sp;
 	matrix::Vector3f next_sp;
 
-	if (_pos_sp_triplet.current.valid) {
-
+	if (_pos_sp_triplet.current.valid) 
+	{
 		matrix::Vector3f curr_pos_sp = _curr_pos_sp;
 
 		//only project setpoints if they are finite, else use current position
@@ -1701,7 +1703,8 @@ void MulticopterPositionControl::control_auto()
 		_curr_pos_sp = curr_pos_sp;
 	}
 
-	if (_pos_sp_triplet.previous.valid) {
+	if (_pos_sp_triplet.previous.valid) 
+	{
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.previous.lat, _pos_sp_triplet.previous.lon,
 				       &prev_sp(0), &prev_sp(1));
@@ -1721,7 +1724,8 @@ void MulticopterPositionControl::control_auto()
 		previous_setpoint_valid = true; /* currrently not necessary to set to true since not used*/
 	}
 
-	if (_pos_sp_triplet.next.valid) {
+	if (_pos_sp_triplet.next.valid) 
+	{
 		map_projection_project(&_ref_pos,
 				       _pos_sp_triplet.next.lat, _pos_sp_triplet.next.lon,
 				       &next_sp(0), &next_sp(1));
@@ -1742,9 +1746,9 @@ void MulticopterPositionControl::control_auto()
 	 * When following the line, the pos_sp is computed from the orthogonal distance to the closest point on line and the desired cruise speed along the track.
 	 */
 
-	/* create new _pos_sp from triplets */
-	if (current_setpoint_valid &&
-	    (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) {
+	//由离散航点序列创建连续动态的参考位置指令
+	if (current_setpoint_valid && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_IDLE)) 
+	{
 
 		/* update yaw setpoint if needed */
 		if (_pos_sp_triplet.current.yawspeed_valid
@@ -2180,7 +2184,9 @@ void MulticopterPositionControl::control_auto()
 			// For the rest of the setpoint types, just leave it as is.
 		}
 
-	} else {
+	} 
+	else 
+	{
 		/* idle or triplet not valid, set velocity setpoint to zero */
 		_vel_sp.zero();
 		_run_pos_control = false;
@@ -2188,8 +2194,9 @@ void MulticopterPositionControl::control_auto()
 	}
 }
 
-void
-MulticopterPositionControl::update_velocity_derivative()
+
+//更新速度微分项（后期可修改掉，不用微分控制）
+void MulticopterPositionControl::update_velocity_derivative()
 {
 	/* Update velocity derivative,
 	 * independent of the current flight mode
@@ -2201,12 +2208,14 @@ MulticopterPositionControl::update_velocity_derivative()
 	// TODO: this logic should be in the estimator, not the controller!
 	if (PX4_ISFINITE(_local_pos.x) &&
 	    PX4_ISFINITE(_local_pos.y) &&
-	    PX4_ISFINITE(_local_pos.z)) {
+		PX4_ISFINITE(_local_pos.z)) 
+	{
 
 		_pos(0) = _local_pos.x;
 		_pos(1) = _local_pos.y;
 
-		if ((_alt_mode.get() == 1) && _local_pos.dist_bottom_valid) {
+		if ((_alt_mode.get() == 1) && _local_pos.dist_bottom_valid) 
+		{
 			if (!_terrain_follow) {
 				_terrain_follow = true;
 				_reset_alt_sp = true;
@@ -2215,7 +2224,9 @@ MulticopterPositionControl::update_velocity_derivative()
 
 			_pos(2) = -_local_pos.dist_bottom;
 
-		} else {
+		} 
+		else 
+		{
 			if (_terrain_follow) {
 				_terrain_follow = false;
 				_reset_alt_sp = true;
@@ -2228,8 +2239,8 @@ MulticopterPositionControl::update_velocity_derivative()
 
 	if (PX4_ISFINITE(_local_pos.vx) &&
 	    PX4_ISFINITE(_local_pos.vy) &&
-	    PX4_ISFINITE(_local_pos.vz)) {
-
+		PX4_ISFINITE(_local_pos.vz)) 
+	{
 		_vel(0) = _local_pos.vx;
 		_vel(1) = _local_pos.vy;
 
@@ -2250,19 +2261,18 @@ MulticopterPositionControl::update_velocity_derivative()
 
 	}
 
-	if (PX4_ISFINITE(_local_pos.z_deriv)) {
+	if (PX4_ISFINITE(_local_pos.z_deriv)) 
+	{
 		_z_derivative = _local_pos.z_deriv;
-	};
+	}
 
 	_vel_err_d(0) = _vel_x_deriv.update(-_vel(0));
-
 	_vel_err_d(1) = _vel_y_deriv.update(-_vel(1));
-
 	_vel_err_d(2) = _vel_z_deriv.update(-_vel(2));
 }
 
-void
-MulticopterPositionControl::do_control()
+//位置控制（手动模式、自动模式、offboard模式）
+void MulticopterPositionControl::do_control()
 {
 	/* by default, run position/altitude controller. the control_* functions
 	 * can disable this and run velocity controllers directly in this cycle */
@@ -2293,22 +2303,25 @@ MulticopterPositionControl::do_control()
 	}
 }
 
-void
-MulticopterPositionControl::control_position()
+//位置控制实现函数
+void MulticopterPositionControl::control_position()
 {
 	calculate_velocity_setpoint();
 
-	if (_control_mode.flag_control_climb_rate_enabled || _control_mode.flag_control_velocity_enabled ||
-	    _control_mode.flag_control_acceleration_enabled) {
+	if (_control_mode.flag_control_climb_rate_enabled || 
+		_control_mode.flag_control_velocity_enabled ||
+		_control_mode.flag_control_acceleration_enabled) 
+	{
 		calculate_thrust_setpoint();
-
-	} else {
+	} 
+	else 
+	{
 		_reset_int_z = true;
 	}
 }
 
-void
-MulticopterPositionControl::calculate_velocity_setpoint()
+//生成参考速度
+void MulticopterPositionControl::calculate_velocity_setpoint()
 {
 	/* run position & altitude controllers, if enabled (otherwise use already computed velocity setpoints) */
 	if (_run_pos_control) {
@@ -2420,8 +2433,8 @@ MulticopterPositionControl::calculate_velocity_setpoint()
 	_vel_sp_prev = _vel_sp;
 }
 
-void
-MulticopterPositionControl::calculate_thrust_setpoint()
+//生成参考推力
+void MulticopterPositionControl::calculate_thrust_setpoint()
 {
 	/* reset integrals if needed */
 	if (_control_mode.flag_control_climb_rate_enabled) {
@@ -2697,8 +2710,8 @@ MulticopterPositionControl::calculate_thrust_setpoint()
 	_att_sp.timestamp = hrt_absolute_time();
 }
 
-void
-MulticopterPositionControl::generate_attitude_setpoint()
+//生成参考姿态
+void MulticopterPositionControl::generate_attitude_setpoint()
 {
 	// yaw setpoint is integrated over time, but we don't want to integrate the offset's
 	_att_sp.yaw_body -= _man_yaw_offset;
@@ -2743,7 +2756,8 @@ MulticopterPositionControl::generate_attitude_setpoint()
 	}
 
 	/* control roll and pitch directly if no aiding velocity controller is active */
-	if (!_control_mode.flag_control_velocity_enabled) {
+	if (!_control_mode.flag_control_velocity_enabled) 
+	{
 
 		/*
 		 * Input mapping for roll & pitch setpoints
@@ -2795,7 +2809,8 @@ MulticopterPositionControl::generate_attitude_setpoint()
 		_att_sp.yaw_body += euler_sp(2);
 
 		/* only if we're a VTOL modify roll/pitch */
-		if (_vehicle_status.is_vtol) {
+		if (_vehicle_status.is_vtol) 
+		{
 			// construct attitude setpoint rotation matrix. modify the setpoints for roll
 			// and pitch such that they reflect the user's intention even if a yaw error
 			// (yaw_sp - yaw) is present. In the presence of a yaw error constructing a rotation matrix
@@ -2852,6 +2867,7 @@ MulticopterPositionControl::generate_attitude_setpoint()
 	_att_sp.timestamp = hrt_absolute_time();
 }
 
+//人工手动控制模式期望起飞
 bool MulticopterPositionControl::manual_wants_takeoff()
 {
 	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
@@ -2860,6 +2876,7 @@ bool MulticopterPositionControl::manual_wants_takeoff()
 	return (has_manual_control_present && (_manual.z > 0.65f || !_control_mode.flag_control_climb_rate_enabled));
 }
 
+//人工手动控制模式期望降落
 bool MulticopterPositionControl::manual_wants_landing()
 {
 	const bool has_manual_control_present = _control_mode.flag_control_manual_enabled && _manual.timestamp > 0;
