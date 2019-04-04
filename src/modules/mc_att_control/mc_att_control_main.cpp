@@ -338,13 +338,15 @@ void MulticopterAttitudeControl::control_attitude(float dt)
 	Vector3f e_z_d = qd.dcm_z();
 	Quatf qd_red(e_z, e_z_d);
 
-	if (abs(qd_red(1)) > (1.f - 1e-5f) || abs(qd_red(2)) > (1.f - 1e-5f)) {
+	if (abs(qd_red(1)) > (1.f - 1e-5f) || abs(qd_red(2)) > (1.f - 1e-5f)) 
+	{
 		/* In the infinitesimal corner case where the vehicle and thrust have the completely opposite direction,
 		 * full attitude control anyways generates no yaw input and directly takes the combination of
 		 * roll and pitch leading to the correct desired yaw. Ignoring this case would still be totally safe and stable. */
 		qd_red = qd;
-
-	} else {
+	} 
+	else 
+	{
 		/* transform rotation from current to desired thrust vector into a world frame reduced desired attitude */
 		qd_red *= q;
 	}
@@ -364,7 +366,7 @@ void MulticopterAttitudeControl::control_attitude(float dt)
 	 * also taking care of the antipodal unit quaternion ambiguity */
 	Vector3f eq = 2.f * math::signNoZero(qe(0)) * qe.imag();
 
-	/* calculate angular rates setpoint */
+	//attitude angle loop P control
 	_rates_sp = eq.emult(attitude_gain);
 
 	/* Feed forward the yaw setpoint rate.
@@ -380,21 +382,26 @@ void MulticopterAttitudeControl::control_attitude(float dt)
 	_rates_sp += yaw_feedforward_rate;
 
 
-	/* limit rates */
-	for (int i = 0; i < 3; i++) {
-		if ((_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) &&
-		    !_v_control_mode.flag_control_manual_enabled) {
+	//limit angular rate cmd
+	for (int i = 0; i < 3; i++) 
+	{
+		if ((_v_control_mode.flag_control_velocity_enabled || 
+			 _v_control_mode.flag_control_auto_enabled) &&
+		    !_v_control_mode.flag_control_manual_enabled) 
+		{
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_auto_rate_max(i), _auto_rate_max(i));
-
-		} else {
+		} 
+		else 
+		{
 			_rates_sp(i) = math::constrain(_rates_sp(i), -_mc_rate_max(i), _mc_rate_max(i));
 		}
 	}
 
-	/* VTOL weather-vane mode, dampen yaw rate */
-	if (_vehicle_status.is_vtol && _v_att_sp.disable_mc_yaw_control) {
-		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) {
-
+	// VTOL悬停抗风，自动转yaw
+	if (_vehicle_status.is_vtol && _v_att_sp.disable_mc_yaw_control) 
+	{
+		if (_v_control_mode.flag_control_velocity_enabled || _v_control_mode.flag_control_auto_enabled) 
+		{
 			const float wv_yaw_rate_max = _auto_rate_max(2) * _vtol_wv_yaw_rate_scale.get();
 			_rates_sp(2) = math::constrain(_rates_sp(2), -wv_yaw_rate_max, wv_yaw_rate_max);
 
