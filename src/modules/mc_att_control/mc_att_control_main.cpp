@@ -1,47 +1,10 @@
-/****************************************************************************
- *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
 
 /**
  * @file mc_att_control_main.cpp
- * Multicopter attitude controller.
- *
- * @author Lorenz Meier		<lorenz@px4.io>
- * @author Anton Babushkin	<anton.babushkin@me.com>
- * @author Sander Smeets	<sander@droneslab.com>
- * @author Matthias Grob	<maetugr@gmail.com>
- * @author Beat Küng		<beat-kueng@gmx.net>
- *
+ * @author jiangyuanqing2008@163.com
+ * @date 2019/03/29
  */
+
 
 #include "mc_att_control.hpp"
 
@@ -65,30 +28,31 @@ using namespace matrix;
 
 int MulticopterAttitudeControl::print_usage(const char *reason)
 {
-	if (reason) {
+	if (reason) 
+	{
 		PX4_WARN("%s\n", reason);
 	}
 
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
-### Description
-This implements the multicopter attitude and rate controller. It takes attitude
-setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
-via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
+	### Description
+	This implements the multicopter attitude and rate controller. It takes attitude
+	setpoints (`vehicle_attitude_setpoint`) or rate setpoints (in acro mode
+	via `manual_control_setpoint` topic) as inputs and outputs actuator control messages.
 
-The controller has two loops: a P loop for angular error and a PID loop for angular rate error.
+	The controller has two loops: a P loop for angular error and a PID loop for angular rate error.
 
-Publication documenting the implemented Quaternion Attitude Control:
-Nonlinear Quadrocopter Attitude Control (2013)
-by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
-Institute for Dynamic Systems and Control (IDSC), ETH Zurich
+	Publication documenting the implemented Quaternion Attitude Control:
+	Nonlinear Quadrocopter Attitude Control (2013)
+	by Dario Brescianini, Markus Hehn and Raffaello D'Andrea
+	Institute for Dynamic Systems and Control (IDSC), ETH Zurich
 
-https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
+	https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth-7387-01.pdf
 
-### Implementation
-To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.
+	### Implementation
+	To reduce control latency, the module directly polls on the gyro topic published by the IMU driver.
 
-)DESCR_STR");
+	)DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
@@ -97,6 +61,7 @@ To reduce control latency, the module directly polls on the gyro topic published
 	return 0;
 }
 
+//parameters and values initializing
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control")),
@@ -105,7 +70,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	{initial_update_rate_hz, 50.f},
 	{initial_update_rate_hz, 50.f}} // will be initialized correctly when params are loaded
 {
-	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) {
+	for (uint8_t i = 0; i < MAX_GYRO_COUNT; i++) 
+	{
 		_sensor_gyro_sub[i] = -1;
 	}
 
@@ -123,7 +89,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_att_control.zero();
 
 	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
-	for (unsigned i = 0; i < 3; i++) {
+	for (unsigned i = 0; i < 3; i++) 
+	{
 		// used scale factors to unity
 		_sensor_correction.gyro_scale_0[i] = 1.0f;
 		_sensor_correction.gyro_scale_1[i] = 1.0f;
@@ -133,12 +100,9 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	parameters_updated();
 }
 
-void
-MulticopterAttitudeControl::parameters_updated()
+void MulticopterAttitudeControl::parameters_updated()
 {
-	/* Store some of the parameters in a more convenient way & precompute often-used values */
-
-	/* roll gains */
+	//roll parameters
 	_attitude_p(0) = _roll_p.get();
 	_rate_p(0) = _roll_rate_p.get();
 	_rate_i(0) = _roll_rate_i.get();
@@ -146,7 +110,7 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d(0) = _roll_rate_d.get();
 	_rate_ff(0) = _roll_rate_ff.get();
 
-	/* pitch gains */
+	//pitch parameters
 	_attitude_p(1) = _pitch_p.get();
 	_rate_p(1) = _pitch_rate_p.get();
 	_rate_i(1) = _pitch_rate_i.get();
@@ -154,7 +118,7 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d(1) = _pitch_rate_d.get();
 	_rate_ff(1) = _pitch_rate_ff.get();
 
-	/* yaw gains */
+	//yaw parameters
 	_attitude_p(2) = _yaw_p.get();
 	_rate_p(2) = _yaw_rate_p.get();
 	_rate_i(2) = _yaw_rate_i.get();
@@ -162,26 +126,29 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d(2) = _yaw_rate_d.get();
 	_rate_ff(2) = _yaw_rate_ff.get();
 
-	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) {
+    //low-pass filter parameters
+	if (fabsf(_lp_filters_d[0].get_cutoff_freq() - _d_term_cutoff_freq.get()) > 0.01f) 
+	{
 		_lp_filters_d[0].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 		_lp_filters_d[1].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
 		_lp_filters_d[2].set_cutoff_frequency(_loop_update_rate_hz, _d_term_cutoff_freq.get());
+
 		_lp_filters_d[0].reset(_rates_prev(0));
 		_lp_filters_d[1].reset(_rates_prev(1));
 		_lp_filters_d[2].reset(_rates_prev(2));
 	}
 
-	/* angular rate limits */
+	//manual (RC) mode angular rate limit parameters
 	_mc_rate_max(0) = math::radians(_roll_rate_max.get());
 	_mc_rate_max(1) = math::radians(_pitch_rate_max.get());
 	_mc_rate_max(2) = math::radians(_yaw_rate_max.get());
 
-	/* auto angular rate limits */
+	//auto mode angular rate limit parameters
 	_auto_rate_max(0) = math::radians(_roll_rate_max.get());
 	_auto_rate_max(1) = math::radians(_pitch_rate_max.get());
 	_auto_rate_max(2) = math::radians(_yaw_auto_max.get());
 
-	/* manual rate control acro mode rate limits and expo */
+	//manual (RC) mode acro mode rate limit parameters
 	_acro_rate_max(0) = math::radians(_acro_roll_max.get());
 	_acro_rate_max(1) = math::radians(_acro_pitch_max.get());
 	_acro_rate_max(2) = math::radians(_acro_yaw_max.get());
@@ -192,15 +159,14 @@ MulticopterAttitudeControl::parameters_updated()
 	_board_rotation = get_rot_matrix((enum Rotation)_board_rotation_param.get());
 
 	/* fine tune the rotation */
-	Dcmf board_rotation_offset(Eulerf(
-			M_DEG_TO_RAD_F * _board_offset_x.get(),
-			M_DEG_TO_RAD_F * _board_offset_y.get(),
-			M_DEG_TO_RAD_F * _board_offset_z.get()));
+	Dcmf board_rotation_offset(Eulerf(M_DEG_TO_RAD_F * _board_offset_x.get(),
+									  M_DEG_TO_RAD_F * _board_offset_y.get(),
+									  M_DEG_TO_RAD_F * _board_offset_z.get()));
+
 	_board_rotation = board_rotation_offset * _board_rotation;
 }
 
-void
-MulticopterAttitudeControl::parameter_update_poll()
+void MulticopterAttitudeControl::parameter_update_poll()
 {
 	bool updated;
 
@@ -215,8 +181,7 @@ MulticopterAttitudeControl::parameter_update_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_control_mode_poll()
+void MulticopterAttitudeControl::vehicle_control_mode_poll()
 {
 	bool updated;
 
@@ -228,8 +193,7 @@ MulticopterAttitudeControl::vehicle_control_mode_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_manual_poll()
+void MulticopterAttitudeControl::vehicle_manual_poll()
 {
 	bool updated;
 
@@ -241,8 +205,7 @@ MulticopterAttitudeControl::vehicle_manual_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
+void MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 {
 	/* check if there is a new setpoint */
 	bool updated;
@@ -253,8 +216,7 @@ MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
+void MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	/* check if there is a new setpoint */
 	bool updated;
@@ -265,8 +227,7 @@ MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_status_poll()
+void MulticopterAttitudeControl::vehicle_status_poll()
 {
 	/* check if there is new status information */
 	bool vehicle_status_updated;
@@ -289,8 +250,7 @@ MulticopterAttitudeControl::vehicle_status_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_motor_limits_poll()
+void MulticopterAttitudeControl::vehicle_motor_limits_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -304,8 +264,7 @@ MulticopterAttitudeControl::vehicle_motor_limits_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::battery_status_poll()
+void MulticopterAttitudeControl::battery_status_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -316,8 +275,7 @@ MulticopterAttitudeControl::battery_status_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::vehicle_attitude_poll()
+void MulticopterAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -328,8 +286,7 @@ MulticopterAttitudeControl::vehicle_attitude_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::sensor_correction_poll()
+void MulticopterAttitudeControl::sensor_correction_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -345,8 +302,7 @@ MulticopterAttitudeControl::sensor_correction_poll()
 	}
 }
 
-void
-MulticopterAttitudeControl::sensor_bias_poll()
+void MulticopterAttitudeControl::sensor_bias_poll()
 {
 	/* check if there is a new message */
 	bool updated;
@@ -355,16 +311,10 @@ MulticopterAttitudeControl::sensor_bias_poll()
 	if (updated) {
 		orb_copy(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensor_bias);
 	}
-
 }
 
-/**
- * Attitude controller.
- * Input: 'vehicle_attitude_setpoint' topics (depending on mode)
- * Output: '_rates_sp' vector, '_thrust_sp'
- */
-void
-MulticopterAttitudeControl::control_attitude(float dt)
+//attitude controller
+void MulticopterAttitudeControl::control_attitude(float dt)
 {
 	vehicle_attitude_setpoint_poll();
 	_thrust_sp = _v_att_sp.thrust;
@@ -460,8 +410,7 @@ MulticopterAttitudeControl::control_attitude(float dt)
  * Input: 'tpa_breakpoint', 'tpa_rate', '_thrust_sp'
  * Output: 'pidAttenuationPerAxis' vector
  */
-Vector3f
-MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
+Vector3f MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
 {
 	/* throttle pid attenuation factor */
 	float tpa = 1.0f - tpa_rate * (fabsf(_v_rates_sp.thrust) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
@@ -475,13 +424,8 @@ MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rat
 	return pidAttenuationPerAxis;
 }
 
-/*
- * Attitude rates controller.
- * Input: '_rates_sp' vector, '_thrust_sp'
- * Output: '_att_control' vector
- */
-void
-MulticopterAttitudeControl::control_attitude_rates(float dt)
+//angular rate controller
+void MulticopterAttitudeControl::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
 	if (!_v_control_mode.flag_armed || !_vehicle_status.is_rotary_wing) {
@@ -585,13 +529,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	}
 }
 
-void
-MulticopterAttitudeControl::run()
+void MulticopterAttitudeControl::run()
 {
-
-	/*
-	 * do subscriptions
-	 */
+	//do subscriptions
 	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -604,11 +544,13 @@ MulticopterAttitudeControl::run()
 
 	_gyro_count = math::min(orb_group_count(ORB_ID(sensor_gyro)), MAX_GYRO_COUNT);
 
-	if (_gyro_count == 0) {
+	if (_gyro_count == 0) 
+	{
 		_gyro_count = 1;
 	}
 
-	for (unsigned s = 0; s < _gyro_count; s++) {
+	for (unsigned s = 0; s < _gyro_count; s++) 
+	{
 		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
 	}
 
@@ -617,7 +559,8 @@ MulticopterAttitudeControl::run()
 	// sensor correction topic is not being published regularly and we might have missed the first update.
 	// so copy it once initially so that we have the latest data. In future this will not be needed anymore as the
 	// behavior of the orb_check function will change
-	if (_sensor_correction_sub > 0) {
+	if (_sensor_correction_sub > 0) 
+	{
 		orb_copy(ORB_ID(sensor_correction), _sensor_correction_sub, &_sensor_correction);
 	}
 
@@ -632,8 +575,8 @@ MulticopterAttitudeControl::run()
 	float dt_accumulator = 0.f;
 	int loop_counter = 0;
 
-	while (!should_exit()) {
-
+	while (!should_exit()) 
+	{
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
@@ -848,7 +791,8 @@ MulticopterAttitudeControl::run()
 	orb_unsubscribe(_motor_limits_sub);
 	orb_unsubscribe(_battery_status_sub);
 
-	for (unsigned s = 0; s < _gyro_count; s++) {
+	for (unsigned s = 0; s < _gyro_count; s++) 
+	{
 		orb_unsubscribe(_sensor_gyro_sub[s]);
 	}
 
