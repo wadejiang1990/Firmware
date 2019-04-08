@@ -108,6 +108,9 @@ private:
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
 
+    
+	void        attitude_control_states_poll();     //do all input variables poll
+
 	/**
 	 * Attitude controller.
 	 */

@@ -166,6 +166,8 @@ void MulticopterAttitudeControl::parameters_updated()
 	_board_rotation = board_rotation_offset * _board_rotation;
 }
 
+
+
 void MulticopterAttitudeControl::parameter_update_poll()
 {
 	bool updated;
@@ -312,6 +314,13 @@ void MulticopterAttitudeControl::sensor_bias_poll()
 		orb_copy(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensor_bias);
 	}
 }
+
+
+void MulticopterAttitudeControl::attitude_control_states_poll()
+{
+	//do all input variables poll
+}
+
 
 //attitude controller
 void MulticopterAttitudeControl::control_attitude(float dt)
